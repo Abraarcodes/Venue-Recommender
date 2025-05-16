@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import VenueCard from './components/VenueCard';
+import VenueMap from './components/VenueMap';
+
 
 const App = () => {
   const [form, setForm] = useState({
@@ -47,6 +49,8 @@ const App = () => {
           ))}
         </div>
       )}
+
+{/* {venues.length > 0 && <VenueMap venues={venues} />} */}
     </div>
   );
 };

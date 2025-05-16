@@ -1,4 +1,5 @@
 const axios = require('axios');
+const {getVenueImage} = require('../scrapers/imageScraper');
 
 exports.getVenues = async (req, res) => {
   const { budget, location, occasion, people, extras } = req.body;
@@ -30,8 +31,7 @@ Respond only with JSON. Example:
     "capacity": 300,
     "allows": ["loud music", "firecrackers"],
     "description": "A premium banquet hall ideal for weddings with ample space and modern amenities."
-  },
-  ...
+  }
 ]
 `;
 
@@ -44,17 +44,23 @@ Respond only with JSON. Example:
     );
 
     const raw = response.data.candidates[0].content.parts[0].text;
-
-    // Extract JSON from response
     const jsonMatch = raw.match(/\[.*\]/s);
-    if (jsonMatch) {
-      const venues = JSON.parse(jsonMatch[0]);
-      res.json({ venues });
-    } else {
-      throw new Error("JSON not found in Gemini response.");
-    }
+
+    if (!jsonMatch) throw new Error("JSON not found in Gemini response.");
+
+    const venues = JSON.parse(jsonMatch[0]);
+
+    // ⏳ Add image to each venue
+    const venuesWithImages = await Promise.all(
+      venues.map(async (venue) => {
+        const imageUrl = await getVenueImage(venue.name, location);
+        return { ...venue, image: imageUrl };
+      })
+    );
+
+    res.json({ venues: venuesWithImages });
   } catch (error) {
-    console.error("Gemini API error:", error.response?.data || error.message);
-    res.status(500).json({ error: 'Failed to get structured venues from AI.' });
+    console.error("Gemini or Puppeteer error:", error);
+    res.status(500).json({ error: 'Failed to fetch venues with images.' });
   }
 };
